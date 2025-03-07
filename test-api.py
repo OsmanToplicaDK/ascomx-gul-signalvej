@@ -4,7 +4,7 @@ from flask import Flask, Response
 
 app = Flask(__name__)
 
-@app.route('/mock', methods=['GET'])
+@app.route('/mock', methods=['POST'])
 def mock_api():
     # Angiv stien til din XML-fil med testpayloaden
     xml_file_path = os.path.join(os.getcwd(), 'test_payload.xml')
