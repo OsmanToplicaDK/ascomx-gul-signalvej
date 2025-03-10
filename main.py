@@ -12,6 +12,8 @@ import requests
 import xml.etree.ElementTree as ET  # for parsing XML
 from pathlib import Path
 import logging
+from datetime import timezone
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -180,6 +182,7 @@ class systematic(Resource):
                 print(f"{datetime.datetime.now()} {host}: Error parsing recordTime: {e}")
                 continue
 
+            record_time = record_time.replace(tzinfo=timezone.utc)
             current_time = datetime.datetime.now(datetime.timezone.utc)
             time_delta = current_time - record_time
 
@@ -229,7 +232,7 @@ class systematic(Resource):
 # Registrer API‑endpoints
 api.add_resource(command, "/commands")
 api.add_resource(commands, "/commands/<string:command1>/<string:mac1>/<string:command2>/<string:mac2>/<string:command3>/<string:mac3>/<string:command4>/<string:mac4>")
-api.add_resource(systematic, "/commands/systematic/<string:mac>/<string:seconds>")
+api.add_resource(systematic, "/commands/systematic/<string:seconds>")
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=6060)
