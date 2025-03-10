@@ -168,43 +168,32 @@ class systematic(Resource):
 
         for event in object_events:
             rt_elem = event.find('recordTime')
-            tz_offset_elem = event.find('eventTimeZoneOffset')
-            
-            if rt_elem is None or tz_offset_elem is None:
+            if rt_elem is None:
                 continue
-                
             rt_text = rt_elem.text
-            tz_offset_text = tz_offset_elem.text
             try:
-                # Parse the datetime string
                 try:
                     record_time = datetime.datetime.strptime(rt_text, "%Y-%m-%dT%H:%M:%S.%f")
                 except ValueError:
                     record_time = datetime.datetime.strptime(rt_text, "%Y-%m-%dT%H:%M:%S")
-                
-                hours, minutes = map(int, [tz_offset_text[1:3], tz_offset_text[4:6]])
-                offset_seconds = hours * 3600 + minutes * 60
-                if tz_offset_text[0] == '-':
-                    offset_seconds = -offset_seconds
-                tz_info = datetime.timezone(datetime.timedelta(seconds=offset_seconds))
-                record_time = record_time.replace(tzinfo=tz_info)
-                current_time = datetime.datetime.now(datetime.timezone.utc)
-                time_delta = current_time - record_time
-
-                if time_delta < timedelta(seconds=accepted_delay):
-                    success_found = True
-                    delay_seconds = int(time_delta.total_seconds())
-                    # Udtræk position (Latitude og Longitude) – husk at positionselementet er navngivet med et namespace
-                    lat_elem = event.find('.//{http://schemas.systematic.com/2015/02/Epcis}Latitude')
-                    lon_elem = event.find('.//{http://schemas.systematic.com/2015/02/Epcis}Longitude')
-                    if lat_elem is not None:
-                        latitude_val = lat_elem.text
-                    if lon_elem is not None:
-                        longitude_val = lon_elem.text
-                    break  # Stop, så snart et opdateret tag er fundet
             except Exception as e:
-                print(f"{datetime.datetime.now()} {host}: Error processing recordTime: {e}")
+                print(f"{datetime.datetime.now()} {host}: Error parsing recordTime: {e}")
                 continue
+
+            current_time = datetime.datetime.now(datetime.timezone.utc)
+            time_delta = current_time - record_time
+
+            if time_delta < timedelta(seconds=accepted_delay):
+                success_found = True
+                delay_seconds = int(time_delta.total_seconds())
+                # Udtræk position (Latitude og Longitude) – husk at positionselementet er navngivet med et namespace
+                lat_elem = event.find('.//{http://schemas.systematic.com/2015/02/Epcis}Latitude')
+                lon_elem = event.find('.//{http://schemas.systematic.com/2015/02/Epcis}Longitude')
+                if lat_elem is not None:
+                    latitude_val = lat_elem.text
+                if lon_elem is not None:
+                    longitude_val = lon_elem.text
+                break  # Stop, så snart et opdateret tag er fundet
 
         @api.representation('application/xml')
         def output_xml(data, code, headers=None):
@@ -240,7 +229,7 @@ class systematic(Resource):
 # Registrer API‑endpoints
 api.add_resource(command, "/commands")
 api.add_resource(commands, "/commands/<string:command1>/<string:mac1>/<string:command2>/<string:mac2>/<string:command3>/<string:mac3>/<string:command4>/<string:mac4>")
-api.add_resource(systematic, "/commands/systematic/<string:seconds>")
+api.add_resource(systematic, "/commands/systematic/<string:mac>/<string:seconds>")
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=6060)
